@@ -733,6 +733,16 @@ export async function listDocuments(
 
     const params: Record<string, string> = {};
 
+    let order_dir: "asc" | "desc" = "asc"
+    if (order_by?.endsWith(" desc")) {
+      order_dir = "desc";
+      order_by = order_by.split(" ")[0];
+    } else
+      if (order_by?.endsWith(" asc")) {
+        order_dir = "asc";
+        order_by = order_by.split(" ")[0];
+      }
+
     if (filters) params.filters = JSON.stringify(filters);
     if (fields) params.fields = JSON.stringify(fields);
     if (limit !== undefined) params.limit = limit.toString();
@@ -744,7 +754,7 @@ export async function listDocuments(
     const response = await frappe.db().getDocList(doctype, {
       fields: fields,
       filters: filters as any[], // Cast filters to any[] to bypass type checking
-      orderBy: order_by ? { field: order_by, order: 'asc' } : undefined,
+      orderBy: order_by ? { field: order_by, order: order_dir } : undefined,
       limit_start: limit_start,
       limit: limit
     });
@@ -783,6 +793,16 @@ export async function listDocumentsWithAuth(
 
     const params: Record<string, string> = {};
 
+    let order_dir: "asc" | "desc" = "asc"
+    if (order_by?.endsWith(" desc")) {
+      order_dir = "desc";
+      order_by = order_by.split(" ")[0];
+    } else
+      if (order_by?.endsWith(" asc")) {
+        order_dir = "asc";
+        order_by = order_by.split(" ")[0];
+      }
+
     if (filters) params.filters = JSON.stringify(filters);
     if (fields) params.fields = JSON.stringify(fields);
     if (limit !== undefined) params.limit = limit.toString();
@@ -794,7 +814,7 @@ export async function listDocumentsWithAuth(
     const response = await frappePassword.db().getDocList(doctype, {
       fields: fields,
       filters: filters as any[], // Cast filters to any[] to bypass type checking
-      orderBy: order_by ? { field: order_by, order: 'asc' } : undefined,
+      orderBy: order_by ? { field: order_by, order: order_dir } : undefined,
       limit_start: limit_start,
       limit: limit
     });
