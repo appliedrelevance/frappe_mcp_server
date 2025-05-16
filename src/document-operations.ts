@@ -224,6 +224,42 @@ export const DOCUMENT_TOOLS = [
       required: ["doctype"],
     },
   },
+  {
+    name: "reconcile_bank_transaction_with_vouchers",
+    description: "Reconciles a Bank Transaction document with specified vouchers by calling a specific Frappe method.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        bank_transaction_name: {
+          type: "string",
+          description: "The ID (name) of the Bank Transaction document to reconcile.",
+        },
+        vouchers: {
+          type: "array",
+          description: "An array of voucher objects to reconcile against the bank transaction.",
+          items: {
+            type: "object",
+            properties: {
+              payment_doctype: {
+                type: "string",
+                description: "The DocType of the payment voucher (e.g., Payment Entry, Journal Entry).",
+              },
+              payment_name: {
+                type: "string",
+                description: "The ID (name) of the payment voucher document.",
+              },
+              amount: {
+                type: "number",
+                description: "The amount from the voucher to reconcile.",
+              },
+            },
+            required: ["payment_doctype", "payment_name", "amount"],
+          },
+        },
+      },
+      required: ["bank_transaction_name", "vouchers"],
+    },
+  },
 ];
 
 // Export a handler function for document tool calls
@@ -501,7 +537,58 @@ export async function handleDocumentToolCall(request: any): Promise<any> {
       } catch (error) {
         return formatErrorResponse(error, `list_documents(${doctype})`);
       }
+    } else if (name === "reconcile_bank_transaction_with_vouchers") {
+      const bankTransactionName = args.bank_transaction_name as string;
+      const vouchers = args.vouchers as Array<{ payment_doctype: string; payment_name: string; amount: number }>;
+
+      if (!bankTransactionName || !vouchers) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "Missing required parameters: bank_transaction_name and vouchers",
+            },
+          ],
+          isError: true,
+        };
+      }
+      if (!Array.isArray(vouchers) || vouchers.some(v => !v.payment_doctype || !v.payment_name || typeof v.amount !== 'number')) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "Invalid format for 'vouchers' parameter. It must be an array of objects, each with 'payment_doctype' (string), 'payment_name' (string), and 'amount' (number).",
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      try {
+        const frappeMethod = "erpnext.accounts.doctype.bank_reconciliation_tool.bank_reconciliation_tool.reconcile_vouchers";
+        const params = {
+          bank_transaction_name: bankTransactionName,
+          vouchers: JSON.stringify(vouchers), // Frappe method expects vouchers as a JSON string
+        };
+
+        console.error(`Calling Frappe method '${frappeMethod}' with params:`, JSON.stringify(params, null, 2));
+        const result = await callMethod(frappeMethod, params);
+        console.error(`Result from '${frappeMethod}':`, JSON.stringify(result, null, 2));
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Bank transaction '${bankTransactionName}' reconciled successfully with vouchers:\n\n${JSON.stringify(result, null, 2)}`,
+            },
+          ],
+        };
+      } catch (error) {
+        console.error(`Error in reconcile_bank_transaction_with_vouchers handler:`, error);
+        return formatErrorResponse(error, `reconcile_bank_transaction_with_vouchers(${bankTransactionName})`);
+      }
     }
+
 
     return {
       content: [

@@ -90,27 +90,22 @@ async function createDocumentWithRetry(
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      console.error(`Attempt ${attempt} to create document of type ${doctype}`);
-
       const result = await frappe.db().createDoc(doctype, values);
 
       // Verify document creation
       const verificationResult = await verifyDocumentCreation(doctype, values, result);
       if (verificationResult.success) {
-        console.error(`Document creation verified on attempt ${attempt}`);
         return { ...result, _verification: verificationResult };
       }
 
       // If verification failed, throw an error to trigger retry
       lastError = new Error(`Verification failed: ${verificationResult.message}`);
-      console.error(`Verification failed on attempt ${attempt}: ${verificationResult.message}`);
 
       // Wait before retrying (exponential backoff)
       const delay = Math.pow(2, attempt - 1) * 1000; // 1s, 2s, 4s, etc.
       await new Promise(resolve => setTimeout(resolve, delay));
     } catch (error) {
       lastError = error;
-      console.error(`Error on attempt ${attempt}:`, error);
 
       // Wait before retrying
       const delay = Math.pow(2, attempt - 1) * 1000;
@@ -185,12 +180,6 @@ export async function getDocument(
 
   const fieldsParam = fields ? `?fields=${JSON.stringify(fields)}` : "";
   try {
-    // Add diagnostic information about the environment
-    console.error(`[DEBUG] getDocument called for ${doctype}/${name}`);
-    console.error(`[DEBUG] API Key available: ${!!process.env.FRAPPE_API_KEY}`);
-    console.error(`[DEBUG] API Secret available: ${!!process.env.FRAPPE_API_SECRET}`);
-    console.error(`[DEBUG] Frappe URL: ${process.env.FRAPPE_URL || 'http://localhost:8000'}`);
-    
     const response = await frappe.db().getDoc(
       doctype,
       name
@@ -202,36 +191,7 @@ export async function getDocument(
 
     return response;
   } catch (error) {
-    // Capture original error details before wrapping
-    const originalError = error as any;
-    const errorInfo = {
-      message: originalError.message,
-      code: originalError.code,
-      name: originalError.name,
-      isAxiosError: !!originalError.isAxiosError,
-      response: originalError.response ? {
-        status: originalError.response.status,
-        statusText: originalError.response.statusText,
-        data: originalError.response.data
-      } : null,
-      request: originalError.request ? 'Request object present' : null,
-      config: originalError.config ? {
-        url: originalError.config.url,
-        method: originalError.config.method,
-        baseURL: originalError.config.baseURL,
-        headers: originalError.config.headers
-      } : null
-    };
-    
-    // Log the original error details
-    console.error(`[DEBUG] Original error in getDocument:`, JSON.stringify(errorInfo, null, 2));
-    
-    // Create a custom error with the original details
-    const customError = new Error(`Document fetch error: ${errorInfo.message}`);
-    (customError as any).originalErrorInfo = errorInfo;
-    
-    // Pass to the standard error handler
-    handleApiError(customError, `get_document(${doctype}, ${name})`);
+    handleApiError(error, `get_document(${doctype}, ${name})`);
   }
 }
 
@@ -245,27 +205,14 @@ export async function createDocument(
       throw new Error("Document values are required");
     }
 
-    console.error(`Creating document of type ${doctype} with values:`, JSON.stringify(values, null, 2));
-
     const response = await frappe.db().createDoc(doctype, values);
-
-    console.error(`Create document response:`, JSON.stringify(response, null, 2));
 
     if (!response) {
       throw new Error(`Invalid response format for creating ${doctype}`);
     }
 
-    // IMPROVED VERIFICATION: Make this a required step, not just a try-catch
-    const verificationResult = await verifyDocumentCreation(doctype, values, response);
-    if (!verificationResult.success) {
-      console.error(`Document creation verification failed: ${verificationResult.message}`);
-      // Return the response but include verification info
-      return { ...response, _verification: verificationResult };
-    }
-
     return response;
   } catch (error) {
-    console.error(`Error in createDocument:`, error);
     handleApiError(error, `create_document(${doctype})`);
   }
 }
@@ -333,23 +280,34 @@ export async function listDocuments(
     if (order_by) params.order_by = order_by;
     if (limit_start !== undefined) params.limit_start = limit_start.toString();
 
-    console.error(`[DEBUG] Requesting documents for ${doctype} with params:`, params);
-
-    const response = await frappe.db().getDocList(doctype, {
-      fields: fields,
-      filters: filters as any[], // Cast filters to any[] to bypass type checking
-      orderBy: order_by ? { field: order_by, order: 'asc' } : undefined,
-      limit_start: limit_start,
-      limit: limit
-    });
-
-    if (!response) {
-      throw new Error(`Invalid response format for listing ${doctype}`);
+    let orderByOption: { field: string; order?: "asc" | "desc" } | undefined = undefined;
+    if (order_by) {
+      const parts = order_by.trim().split(/\s+/);
+      const field = parts[0];
+      const order = parts[1]?.toLowerCase() === "desc" ? "desc" : "asc";
+      orderByOption = { field, order };
     }
 
-    console.error(`[DEBUG] Retrieved ${response.length} ${doctype} documents`);
+    const optionsForGetDocList = {
+      fields: fields,
+      filters: filters as any[],
+      orderBy: orderByOption,
+      limit_start: limit_start,
+      limit: limit
+    };
 
-    return response;
+    try {
+      const response = await frappe.db().getDocList(doctype, optionsForGetDocList as any); // Cast to any to resolve complex type issue for now, focusing on runtime
+
+      if (!response) {
+        throw new Error(`Invalid response format for listing ${doctype}`);
+      }
+
+      return response;
+    } catch (sdkError) {
+      // Re-throw the error to be handled by the existing handleApiError
+      throw sdkError;
+    }
   } catch (error) {
     handleApiError(error, `list_documents(${doctype})`);
   }

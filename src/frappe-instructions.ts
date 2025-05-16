@@ -156,6 +156,7 @@ Available operators:
 - "between" (for date ranges)
 
 Tips:
+- Before using the \`list_documents\` tool with filters, the schema for the target doctype **must** be retrieved (e.g., using a \`get_doctype_schema\` tool or equivalent functionality). This step is crucial to identify the correct field names for the filter conditions, preventing errors due to invalid field references.
 - Use limit and limit_start for pagination
 - order_by accepts field name with optional "asc" or "desc" direction
 - If fields are not specified, standard fields will be returned
@@ -463,6 +464,20 @@ Tips:
 - Names are case-sensitive and must be unique within a DocType
 - When creating documents, you can often omit the name for auto-named DocTypes
 - For manually named DocTypes, always provide a unique name
+      `,
+    },
+    USER_FRIENDLY_DISPLAY_NAMES: {
+      description: "Using user-friendly names vs. internal IDs",
+      usage: `
+When presenting information to the user, generating summaries, or updating descriptive documentation (such as markdown files):
+*   Prioritize using user-friendly display names for Frappe documents (e.g., the \`account_name\` for an Account, \`item_name\` for an Item, \`full_name\` for a User) instead of their internal \`name\` (ID).
+*   If you only have the document's internal \`name\` (ID), and need its display name for descriptive purposes, attempt to fetch the document to retrieve the appropriate display field.
+*   **Important Distinction:** For all direct API interactions with Frappe (e.g., creating documents, updating documents, setting link fields, applying filters via \`list_documents\`), you **must** continue to use the internal Frappe \`name\` (ID) of the document in the relevant data fields to ensure correct system operation.
+
+Example:
+If you have an Account with \`name\` = "001-ACC" and \`account_name\` = "Sales Revenue Account".
+- When showing this account in a report: Display "Sales Revenue Account".
+- When setting this account in a Journal Entry's \`account\` field (a Link field): Use "001-ACC".
       `,
     },
   }
