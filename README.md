@@ -85,6 +85,21 @@ Or with environment variables:
 FRAPPE_URL=https://your-frappe-instance.com FRAPPE_API_KEY=your_api_key FRAPPE_API_SECRET=your_api_secret npx frappe-mcp-server
 ```
 
+### Docker Support
+
+This application can also be run using Docker. For detailed instructions, see the [Docker documentation](DOCKER.md).
+
+Quick start with Docker Compose:
+
+```bash
+# Create a .env file with your Frappe credentials
+cp .env.example .env
+# Edit .env with your actual credentials
+nano .env
+# Start the container
+docker-compose up -d
+```
+
 ### Integrating with AI Assistants
 
 To use this MCP server with an AI assistant, you need to configure the assistant to connect to this server. The exact configuration depends on the AI assistant platform you're using.

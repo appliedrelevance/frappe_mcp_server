@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  frappe-mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: frappe-mcp-server
+    ports:
+      - "3000:3000"
+    environment:
+      - FRAPPE_URL=${FRAPPE_URL:-http://localhost:8000}
+      - FRAPPE_API_KEY=${FRAPPE_API_KEY}
+      - FRAPPE_API_SECRET=${FRAPPE_API_SECRET}
+    volumes:
+      # For development, you can mount your source code to enable hot reloading
+      # Comment out in production
+      # - ./src:/app/src
+      # Mount server hints directory
+      - ./src/server_hints:/app/src/server_hints
+    restart: unless-stopped

@@ -1,0 +1,28 @@
+# Node.js specific
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn-debug.log
+.npm/
+
+# TypeScript output
+build/
+dist/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE files
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
