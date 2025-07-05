@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/appliedrelevance-frappe-mcp-server-badge.png)](https://mseep.ai/app/appliedrelevance-frappe-mcp-server)
+
 # Frappe MCP Server
 
 A Model Context Protocol (MCP) server for Frappe Framework that exposes Frappe's functionality to AI assistants through the official REST API, with a focus on document CRUD operations, schema handling, and detailed API instructions.
